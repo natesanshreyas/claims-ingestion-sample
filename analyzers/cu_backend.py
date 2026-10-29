@@ -1,4 +1,8 @@
-"""ANALYZER_BACKEND=cu: Content Understanding classifies the document and extracts the group schema in one call.
+"""ANALYZER_BACKEND=cu (default): Content Understanding classifies the document and extracts the group schema in
+one call.
+
+Why it's the default: CU describes every image in every document (the description is written into the Markdown),
+so photos and diagrams become searchable. Doc Intel only reads text and layout.
 
 The {prefix}classifier analyzer (built by create_cu_analyzers.py) labels the document with a group and routes it
 to that group's analyzer. The result has one content item for the classifier plus one per routed segment, and

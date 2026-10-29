@@ -2,8 +2,9 @@
 
 Reference sample for the claims AI MVP. Claim documents from the **file share** (scanned PDFs, OCR documents,
 emails, and reports from many agencies, with no consistent format) are classified into document groups and
-extracted against a **two-layer schema**. They're analyzed with **Azure Document Intelligence** (the MVP default) or
-**Content Understanding** (optional), written to Blob Storage, and indexed by **Azure AI Search**. A **Foundry agent**
+extracted against a **two-layer schema**. They're analyzed with **Azure AI Content Understanding** (the default;
+it also describes every photo and diagram) or, optionally, **Azure Document Intelligence**, then written to Blob
+Storage and indexed by **Azure AI Search**. A **Foundry agent**
 then answers open-ended claim questions ("what does the fire report say?") from that index, with citations.
 
 **Databricks** supplies structured claims data and claim log notes. It is *not* a document source here. The pipeline
@@ -25,8 +26,8 @@ flowchart LR
     SRC --> CLS{"Classifier<br/>→ document group"}
     CLS --> SCH["schemas/<br/>envelope + group fields"]
     SCH --> AN{"ANALYZER_BACKEND"}
-    AN -->|docintel (MVP)| DI["Doc Intel prebuilt-layout<br/>+ chat-completion extraction"]
-    AN -->|cu| CU["Content Understanding<br/>classifier → group analyzer"]
+    AN -->|cu (default)| CU["Content Understanding<br/>classifier → group analyzer<br/>+ image descriptions"]
+    AN -.->|docintel (alternative)| DI["Doc Intel prebuilt-layout<br/>+ chat-completion extraction"]
     DI --> BLOB[("Blob 'analyzed'<br/>{claim_id}/{document_id}.md / .json")]
     CU --> BLOB
     BLOB --> IDX["AI Search indexer<br/>chunking + embeddings"]
@@ -37,6 +38,23 @@ flowchart LR
     AG --> U(["Claims user"])
     BLOB -. status .-> ST[("Databricks<br/>status table")]
 ```
+
+## Why Content Understanding is the default
+
+Claim files are full of photos and diagrams: damage photos, fire scene images, police sketches. Users need to be able
+to find them ("are there photos of the roof damage?").
+
+| | Content Understanding (default) | Document Intelligence (alternative) |
+|---|---|---|
+| Text, tables, layout as Markdown | ✅ | ✅ |
+| **Image descriptions** | ✅ Every image in every document, written into the Markdown, so it's searchable | ❌ Not by Doc Intel itself. Returns `<figure>` plus any text OCR'd *inside* the image. This sample works around that for photo-only documents (crop + GPT-4.1 vision) but **not for photos inside other documents** |
+| Classification | Built in: categories defined by description, no training | Separate chat-completion call |
+| Extraction against the schema | Built in: one analyzer per group, built from `/schemas` | Separate chat-completion call |
+| Calls per document | 1 | 2–3 (+1 per image in photo documents) |
+
+Tested on the same synthetic claim files: both backends classified and extracted all 6 documents the same way. The
+difference is images. A damage photo inside a fire report is described by CU and invisible on the Doc Intel path.
+The Doc Intel backend stays in the repo for teams that already run it (`ANALYZER_BACKEND=docintel`).
 
 ## Schemas
 
@@ -59,7 +77,7 @@ Every document is described in **two layers**:
 > **The groups are proposed.** They'll be finalized in a live document-review session with the claims team.
 
 **How the schemas are used in the flow:**
-classifier (assigns the group) → group schema (envelope + group fields) → Doc Intel *or* CU extraction →
+classifier (assigns the group) → group schema (envelope + group fields) → CU (or Doc Intel) extraction →
 `{claim_id}/{document_id}.md` + `.json` in Blob → AI Search indexer → agent.
 Both backends return the same JSON shape, so nothing downstream depends on which one ran.
 Details, editing tips, and cost notes: [`schemas/README.md`](schemas/README.md).
@@ -73,9 +91,9 @@ log_notes_to_search.py     OPTIONAL: Databricks log notes → Blob 'lognotes' �
 sources/                   DocumentSource interface: LocalOrBlobSource (file share stand-in), Documentum stub
 analyzers/
   __init__.py              schema loading, output contract, email → Markdown, backend switch
-  docintel_backend.py      Doc Intel layout + chat-completion classifier/extractor (+ figure descriptions)
-  cu_backend.py            Content Understanding classifier → per-group analyzers
-  create_cu_analyzers.py   builds the CU analyzers from /schemas (cu backend only)
+  cu_backend.py            DEFAULT: Content Understanding classifier → per-group analyzers (+ image descriptions)
+  create_cu_analyzers.py   builds the CU analyzers from /schemas (run once, and after schema changes)
+  docintel_backend.py      alternative: Doc Intel layout + chat-completion classifier/extractor
 schemas/                   envelope + one JSON Schema per document group (+ README)
 agent/
   create_agent.py          Foundry agent with the AI Search index as its knowledge source
@@ -88,8 +106,8 @@ agent/
 |---|---|
 | Local-folder / Blob document source | Implemented |
 | Documentum source | **Stub** (`# TODO` + requirements in `sources/__init__.py`) |
-| Doc Intel backend (layout, classify, extract, figure descriptions) | Implemented; **run live** against a Foundry resource on synthetic claim files |
-| CU backend + `create_cu_analyzers.py` | Implemented; **run live** on the same files (both backends agreed on all 6 test docs) |
+| CU backend (default) + `create_cu_analyzers.py` | Implemented; **run live** against a Foundry resource on synthetic claim files, including a fire report with an embedded scene photo |
+| Doc Intel backend (alternative) | Implemented; **run live** on the same files (both backends agreed on all 6 base test docs) |
 | Blob upload, Databricks status table, indexer trigger | Implemented; not run live in this round (no Databricks workspace or indexer available). Same code as the earlier version, which was tested against mocks |
 | `agent/create_agent.py`, `ask_agent.py` | Implemented; agent creation, request routing, the per-claim filter, and the "not found" answer **run live** against an *empty* test index. Answers over real indexed content not yet tested |
 | Search data source / index / skillset / indexer | **Not created by this repo**. Configure as described in `main.py` Step 4 |
@@ -99,11 +117,12 @@ agent/
 ## Prerequisites
 
 - Python 3.10+.
-- **Foundry (AI Services) resource + project** with a chat model deployment (e.g. `gpt-4.1`; it must accept images
-  for figure descriptions). Doc Intel runs on the same resource.
-- For `ANALYZER_BACKEND=cu`: **Content Understanding default model deployments already configured** on the resource
-  (chat completion + `text-embedding-3-large`, set once in the portal or with `PATCH /contentunderstanding/defaults`),
-  then `python -m analyzers.create_cu_analyzers`.
+- **Foundry (AI Services) resource + project** with a chat model deployment (e.g. `gpt-4.1`) for the agent.
+- **Content Understanding default model deployments already configured** on that resource (chat completion, e.g.
+  `gpt-4.1` / `gpt-4.1-mini`, + `text-embedding-3-large`; set once in the Foundry portal or with
+  `PATCH /contentunderstanding/defaults`). This sample doesn't set them up. Then build the analyzers once:
+  `python -m analyzers.create_cu_analyzers`.
+- Only for `ANALYZER_BACKEND=docintel`: Document Intelligence on the same resource; the chat model must accept images.
 - **Storage account** with `analyzed` (and, for `DOCUMENT_SOURCE=blob`, `raw`; for log notes, `lognotes`) containers.
 - **AI Search**: data source → `analyzed`, an indexer with `parsingMode: markdown` and
   `indexedFileNameExtensions: .md`, a skillset (Text Split + Azure OpenAI Embedding, with index projections), and an
@@ -124,8 +143,8 @@ agent/
 
 | Identity | Role | Scope | Why |
 |---|---|---|---|
-| Pipeline (app / managed identity) | **Cognitive Services User** | Foundry / AI Services resource | Doc Intel, CU, analyzer creation |
-| Pipeline | **Foundry User** (formerly Azure AI User) | Foundry project | Chat completions through the project endpoint |
+| Pipeline (app / managed identity) | **Cognitive Services User** | Foundry / AI Services resource | CU analysis and analyzer creation (and Doc Intel, if used) |
+| Pipeline (Doc Intel backend only) | **Foundry User** (formerly Azure AI User) | Foundry project | Chat completions through the project endpoint |
 | Pipeline | **Storage Blob Data Contributor** | Storage account | Read `raw`, write `analyzed` / `lognotes` |
 | Pipeline | **Search Service Contributor** | AI Search | Run indexers and read their status |
 | Pipeline | Databricks: `CAN USE` warehouse; `SELECT, MODIFY` status table; `SELECT` log-notes table | Databricks / Unity Catalog | Status and log notes |
@@ -143,7 +162,7 @@ pip install -r requirements.txt
 cp .env.example .env          # fill in values
 az login                      # local dev; in Azure, DefaultAzureCredential uses the managed identity
 
-python -m analyzers.create_cu_analyzers    # only if ANALYZER_BACKEND=cu
+python -m analyzers.create_cu_analyzers    # once, and again after any schema change
 python main.py                             # ingest: share → analyze → Blob → index → status
 python log_notes_to_search.py              # optional: log notes → search
 
@@ -170,11 +189,11 @@ above.
   Documentum service account. Keep both in Key Vault, never in `.env` in source control. Prefer Entra ID over a key
   for the Foundry→Search connection.
 - **Concurrency**: documents are processed one at a time. At ~100 documents per claim, use a bounded worker pool or
-  a queue (Service Bus / Durable Functions), and size it to Doc Intel / CU / model TPM quotas. Don't run two pipelines
+  a queue (Service Bus / Durable Functions), and size it to CU (or Doc Intel) and model TPM quotas. Don't run two pipelines
   over the same share without a lease or claim column.
-- **Large files (1,000+ pages per claim)**: Doc Intel and CU have per-file page and size limits. Split very large
-  PDFs, or use `pages` / `content_range`. Extraction sends at most `MAX_EXTRACTION_CHARS` to the model; long reports
-  need chunked extraction (map-reduce over sections) instead of truncation. Stream from Blob rather than holding
+- **Large files (1,000+ pages per claim)**: CU (and Doc Intel) have per-file page and size limits. Split very large
+  PDFs, or use `content_range` (CU) / `pages` (Doc Intel). On the Doc Intel path, extraction sends at most
+  `MAX_EXTRACTION_CHARS` to the model; long reports need chunked extraction instead of truncation. Stream from Blob rather than holding
   whole files in memory.
 - **Idempotency**: `document_id` is a hash of the file's path on the share, blobs are overwritten, and status is a
   `MERGE`. A moved or renamed file is treated as a new document; handle deletes with a soft-delete flag plus Search

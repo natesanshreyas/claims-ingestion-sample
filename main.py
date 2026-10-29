@@ -1,6 +1,6 @@
 """Reference sample: claims document ingestion pipeline.
 
-File share (DOCUMENT_SOURCE) -> classify + extract (ANALYZER_BACKEND = Doc Intel or Content Understanding)
+File share (DOCUMENT_SOURCE) -> classify + extract (ANALYZER_BACKEND = Content Understanding, or Doc Intel)
 -> Blob "analyzed" container -> Azure AI Search indexer -> status written back to Databricks.
 
 Not production code. See README "Production considerations".
@@ -34,7 +34,7 @@ def get_pending_documents(source):
     return [d for d in source.list_documents() if d["document_id"] not in done][:BATCH_SIZE]
 
 
-# --- Step 2: classify + extract (Doc Intel or CU, chosen by ANALYZER_BACKEND) --------------------
+# --- Step 2: classify + extract (CU by default, or Doc Intel; chosen by ANALYZER_BACKEND) ---------
 def analyze_document(backend, doc, data):
     """Both backends return the same contract (see analyzers/__init__.py), so the rest of the pipeline is shared."""
     return backend.analyze(doc, data)

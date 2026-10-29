@@ -25,10 +25,10 @@
 
 - **Classification**: each group's top-level `description` is its classifier definition, for both backends. Write
   descriptions as "what belongs here" with concrete examples. That wording is the main lever on accuracy.
-- **Doc Intel backend**: the envelope and group fields are merged into one JSON Schema and passed to the chat model as
-  `response_format` (`analyzers/__init__.py: extraction_schema`).
-- **CU backend**: `python -m analyzers.create_cu_analyzers` turns the same merged schema into one CU analyzer per
-  group, plus a classifier analyzer that routes to them. Re-run it after any schema change.
+- **CU backend (default)**: `python -m analyzers.create_cu_analyzers` turns the merged envelope + group schema into
+  one CU analyzer per group, plus a classifier analyzer that routes to them. Re-run it after any schema change.
+- **Doc Intel backend (alternative)**: the same merged schema (`analyzers/__init__.py: extraction_schema`) is passed
+  to the chat model as `response_format`.
 - `x-source` is a custom keyword this sample uses to decide who fills a field; JSON Schema validators ignore it.
 
 ## Editing tips
@@ -42,7 +42,7 @@
 ## Cost
 
 Schema size and complexity drive cost. Each field adds output tokens on every document, in every group it
-belongs to. The Doc Intel path also adds two chat calls per document (classify, then extract) plus one vision call
-per figure for image-heavy documents (capped by `MAX_FIGURES_PER_DOCUMENT`). The CU path bills content extraction
-plus generative tokens per field. Before scaling past the MVP (~10 claims × ~100 documents), measure cost per
-document on a representative sample and cut fields nobody uses.
+belongs to. The CU path (default) bills content extraction, figure descriptions, and generative tokens per field.
+The Doc Intel alternative adds two chat calls per document (classify, then extract) plus one vision call per figure
+for image-heavy documents (capped by `MAX_FIGURES_PER_DOCUMENT`). Before scaling past the MVP
+(~10 claims × ~100 documents), measure cost per document on a representative sample and cut fields nobody uses.

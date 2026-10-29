@@ -1,8 +1,10 @@
-"""ANALYZER_BACKEND=docintel (MVP): Document Intelligence prebuilt-layout -> chat-completion classifier ->
+"""ANALYZER_BACKEND=docintel (alternative): Document Intelligence prebuilt-layout -> chat-completion classifier ->
 chat-completion extraction against the group schema.
 
-Doc Intel reads text and layout but doesn't describe images. For image-heavy documents, this backend crops each
-figure (Doc Intel `output=figures`) and asks the vision-capable chat model to describe it.
+Kept for teams that already run Document Intelligence. The default is the Content Understanding backend because
+Doc Intel doesn't describe images. This backend works around that only for image-heavy documents: it crops each
+figure (Doc Intel `output=figures`) and asks the vision-capable chat model to describe it. Photos inside other
+documents (e.g. a fire report with scene photos) get no description, so they aren't searchable.
 """
 import base64
 import json

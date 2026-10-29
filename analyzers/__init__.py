@@ -74,8 +74,8 @@ def email_to_markdown(data):
 
 
 def get_backend():
-    """ANALYZER_BACKEND=docintel (MVP default) or cu. Imported lazily so you only need the SDK you use."""
-    backend = os.getenv("ANALYZER_BACKEND", "docintel").lower()
+    """ANALYZER_BACKEND=cu (default) or docintel. Imported lazily so you only need the SDK you use."""
+    backend = os.getenv("ANALYZER_BACKEND", "cu").lower()
     if backend == "docintel":
         from analyzers import docintel_backend
         return docintel_backend
