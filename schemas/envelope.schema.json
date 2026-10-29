@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "envelope.schema.json",
+  "title": "envelope",
+  "description": "Common fields every claim document gets, regardless of group. Fields marked x-source=pipeline are filled in by code; the rest are extracted from the document.",
+  "type": "object",
+  "properties": {
+    "claim_id":           { "type": "string", "x-source": "pipeline", "description": "Claim the document belongs to (from the source folder / system)." },
+    "document_id":        { "type": "string", "x-source": "pipeline", "description": "Stable ID of the source document." },
+    "source_path":        { "type": "string", "x-source": "pipeline", "description": "Where the original file lives (file share path, blob URL, Documentum ID)." },
+    "document_group":     { "type": "string", "x-source": "pipeline", "description": "Group assigned by the classifier step.",
+                            "enum": ["correspondence_email", "investigation_report", "external_agency_document", "medical_legal_document", "image_heavy_document", "other"] },
+    "document_type": {
+      "type": "string",
+      "description": "Most specific type of this document.",
+      "enum": ["Email", "Letter", "FireReport", "PoliceReport", "AdjusterReport", "AgencyNotice", "Invoice", "Estimate",
+               "MedicalRecord", "MedicalBill", "LegalFiling", "Photo", "Diagram", "Other"]
+    },
+    "document_date":      { "type": "string", "format": "date", "description": "Main date of the document (sent, issued, or report date), as YYYY-MM-DD." },
+    "summary":            { "type": "string", "description": "Two to four sentence summary of what the document says about the claim." },
+    "key_entities":       { "type": "array", "items": { "type": "string" }, "description": "People, organizations, vehicles, properties, and addresses named in the document." },
+    "full_text_markdown": { "type": "string", "x-source": "pipeline", "description": "Full document text as Markdown (from Doc Intel or Content Understanding)." },
+    "confidence":         { "type": "number", "x-source": "pipeline", "minimum": 0, "maximum": 1, "description": "Classifier confidence for document_group (0-1). Self-reported by the model on the Doc Intel path, so treat it as a rough signal." }
+  },
+  "required": ["claim_id", "document_id", "source_path", "document_group", "document_type", "summary", "full_text_markdown"]
+}

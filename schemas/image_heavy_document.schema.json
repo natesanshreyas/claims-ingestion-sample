@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "image_heavy_document.schema.json",
+  "title": "image_heavy_document",
+  "description": "Documents made up mostly or entirely of photos, diagrams, or sketches, with little or no running text (any text is just captions, labels, or signs visible in a photo): damage photos, scene diagrams, floor plans. Choose this whenever images are the main content.",
+  "allOf": [{ "$ref": "envelope.schema.json" }],
+  "properties": {
+    "figure_descriptions": {
+      "type": "array",
+      "x-source": "figures",
+      "description": "One description per image or diagram: what it shows and any visible damage. Filled in from figure analysis, not text extraction.",
+      "items": { "type": "object", "properties": { "figure_id": { "type": "string" }, "description": { "type": "string" } } }
+    }
+  }
+}

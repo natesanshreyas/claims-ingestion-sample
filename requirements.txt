@@ -1,5 +1,10 @@
 # Content Understanding SDK is pre-release only; the b-version specifier lets pip pick it up without --pre.
+# Needed only for ANALYZER_BACKEND=cu.
 azure-ai-contentunderstanding>=1.2.0b3
+azure-ai-documentintelligence>=1.0.2
+# Foundry project client: agents, and an Entra-authenticated OpenAI client for chat completions.
+azure-ai-projects>=2.9.0
+openai>=3.0.0
 azure-identity>=1.19.0
 azure-storage-blob>=12.24.0
 azure-search-documents>=11.6.0

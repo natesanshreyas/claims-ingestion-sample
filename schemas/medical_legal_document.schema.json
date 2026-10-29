@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "medical_legal_document.schema.json",
+  "title": "medical_legal_document",
+  "description": "Medical records and bills, and legal documents: attorney letters, demands, complaints, court filings, rulings, settlements. Contains PII/PHI.",
+  "allOf": [{ "$ref": "envelope.schema.json" }],
+  "properties": {
+    "party":                       { "type": "string", "description": "Patient, plaintiff, or represented party the document is about." },
+    "dates_of_service_or_filing":  { "type": "array", "items": { "type": "string", "format": "date" }, "description": "Dates of medical service, or filing / hearing dates, as YYYY-MM-DD." },
+    "diagnoses_or_rulings":        { "type": "array", "items": { "type": "string" }, "description": "Diagnoses (with codes if present) or legal rulings / demands." },
+    "outcome":                     { "type": "string", "description": "Treatment plan, case outcome, settlement, or current status." }
+  }
+}

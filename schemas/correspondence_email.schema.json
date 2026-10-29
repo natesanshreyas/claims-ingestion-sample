@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "correspondence_email.schema.json",
+  "title": "correspondence_email",
+  "description": "Emails and letters exchanged about the claim: insured, claimant, adjuster, attorney, or vendor correspondence.",
+  "allOf": [{ "$ref": "envelope.schema.json" }],
+  "properties": {
+    "sender":                   { "type": "string", "description": "Who sent the message (name and/or email address)." },
+    "recipients":               { "type": "array", "items": { "type": "string" }, "description": "To/CC recipients." },
+    "sent_date":                { "type": "string", "format": "date", "description": "Date sent, as YYYY-MM-DD." },
+    "thread_topic":             { "type": "string", "description": "Subject or main topic of the thread." },
+    "action_requested":         { "type": "string", "description": "What the sender is asking for, if anything." },
+    "claim_activity_described": { "type": "string", "description": "Claim activity the message reports (inspection scheduled, payment issued, documents requested, etc.)." }
+  }
+}

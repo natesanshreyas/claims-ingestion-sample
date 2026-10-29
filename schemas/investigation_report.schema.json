@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "investigation_report.schema.json",
+  "title": "investigation_report",
+  "description": "Investigation reports about the loss: fire marshal / fire department reports, police reports, and adjuster or independent investigator reports.",
+  "allOf": [{ "$ref": "envelope.schema.json" }],
+  "properties": {
+    "incident_date":             { "type": "string", "format": "date", "description": "Date of the incident, as YYYY-MM-DD." },
+    "loss_location":             { "type": "string", "description": "Address or description of where the loss happened." },
+    "cause_or_origin":           { "type": "string", "description": "Stated cause, or point of origin for fires." },
+    "findings":                  { "type": "array", "items": { "type": "string" }, "description": "Key findings or conclusions of the report." },
+    "parties_involved": {
+      "type": "array",
+      "description": "People or organizations involved and their role.",
+      "items": { "type": "object", "properties": { "name": { "type": "string" }, "role": { "type": "string" } } }
+    },
+    "report_author_or_agency":   { "type": "string", "description": "Author, investigator, or agency that issued the report." }
+  }
+}

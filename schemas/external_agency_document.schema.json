@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "external_agency_document.schema.json",
+  "title": "external_agency_document",
+  "description": "Documents from outside agencies or vendors that are not investigation reports: government notices, inspection certificates, contractor estimates, invoices, utility or weather records.",
+  "allOf": [{ "$ref": "envelope.schema.json" }],
+  "properties": {
+    "issuing_agency":     { "type": "string", "description": "Agency, company, or office that issued the document." },
+    "document_purpose":   { "type": "string", "description": "Why the document exists (notice, estimate, certificate, invoice, record request, etc.)." },
+    "key_determinations": { "type": "array", "items": { "type": "string" }, "description": "Decisions, determinations, or conclusions stated in the document." },
+    "amounts": {
+      "type": "array",
+      "description": "Monetary amounts stated in the document.",
+      "items": { "type": "object", "properties": { "description": { "type": "string" }, "amount": { "type": "number" }, "currency": { "type": "string" } } }
+    }
+  }
+}
