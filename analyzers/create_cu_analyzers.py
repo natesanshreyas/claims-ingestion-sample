@@ -66,8 +66,8 @@ def classifier_analyzer():
         models={"completion": COMPLETION_MODEL},
         config=ContentAnalyzerConfig(
             return_details=True,
-            # Lets the classifier "see" photos; without it a photo-only page is just OCR'd sign text.
-            enable_figure_description=True,
+            # Figure description is left off here: CU classifies from text either way (tested), so it would only
+            # add cost. Photo-only documents are handled by the fallback in cu_backend.py.
             # Each file on the share is one document. Splitting is off because it breaks photo pages away
             # from the report they belong to. Turn it on only for scanned packets that bundle several documents.
             enable_segment=False,
