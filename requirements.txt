@@ -1,0 +1,7 @@
+# Content Understanding SDK is pre-release only; the b-version specifier lets pip pick it up without --pre.
+azure-ai-contentunderstanding>=1.2.0b3
+azure-identity>=1.19.0
+azure-storage-blob>=12.24.0
+azure-search-documents>=11.6.0
+databricks-sdk>=0.40.0
+python-dotenv>=1.0.0
